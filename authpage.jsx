@@ -2,35 +2,31 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TextField, Button, Typography, Paper, Box } from '@mui/material';
 import { AuthContext } from '../context/AuthContext';
-import { SocketContext } from '../context/SocketContext';
-import io from 'socket.io-client';
 
 const AuthPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
-  const { setUser } = useContext(AuthContext);
-  const { setSocket } = useContext(SocketContext);
+  const [error, setError] = useState('');
+  const { login, register } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     
-    // In a real app, this would call your backend API
-    const mockUser = {
-      id: 'user_' + Math.random().toString(36).substring(2, 9),
-      username,
-      token: 'mock_jwt_token_' + username
-    };
-    
-    // Set up socket connection
-    const socket = io('http://localhost:3000', {
-      auth: { token: mockUser.token }
-    });
-    
-    setSocket(socket);
-    setUser(mockUser);
-    navigate('/chat');
+    try {
+      if (isLogin) {
+        await login(username, password);
+      } else {
+        await register(username, password);
+        // After registration, automatically log in
+        await login(username, password);
+      }
+      navigate('/chat');
+    } catch (err) {
+      setError(err.message || 'Authentication failed');
+    }
   };
 
   return (
@@ -39,6 +35,11 @@ const AuthPage = () => {
         <Typography variant="h5" gutterBottom>
           {isLogin ? 'Login' : 'Register'}
         </Typography>
+        {error && (
+          <Typography color="error" sx={{ mb: 2 }}>
+            {error}
+          </Typography>
+        )}
         <form onSubmit={handleSubmit}>
           <TextField
             label="Username"
@@ -47,6 +48,7 @@ const AuthPage = () => {
             margin="normal"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            required
           />
           <TextField
             label="Password"
@@ -56,6 +58,7 @@ const AuthPage = () => {
             margin="normal"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           />
           <Button
             type="submit"
@@ -78,4 +81,4 @@ const AuthPage = () => {
   );
 };
 
-export default AuthPage;s
+export default AuthPage;
